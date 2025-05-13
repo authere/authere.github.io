@@ -353,7 +353,7 @@
     <div class="token-list" id="tokenList"></div>
   </div>
 
-  <divPACKAGECODE class="footer">
+  <div class="footer">
     <a href="https://github.com/Autherest/autherest.github.io" target="_blank">Open Source</a>
     <a href="/privacy-policy">Privacy Policy</a>
     <a href="/contact">Contact</a>
@@ -367,7 +367,7 @@
 
   <div id="addModal" class="modal">
     <div class="modal-content">
-      <h3 id="addModalTitle">Add Token</h3>
+      <h3 id="addModalTitle">Add Token</h></h3>
       <label for="issuer">Issuer</label>
       <input type="text" id="issuer" placeholder="e.g., Google" maxlength="64" autofocus>
       <label for="secret">Secret (Base32)</label>
@@ -417,9 +417,9 @@
       const content = document.getElementById('modalContent');
       content.innerHTML = type === 'export' ? `
         <h3>Export Tokens</h3>
-        <label for="exportPass">Encryption Password</label>
-        <input type="password" id="exportPass" placeholder="Enter a strong password" maxlength="64">
-        <div class="info-text">This password will be required to import the tokens later.</div>
+        <label for="exportPass">Encryption Password (optional)</label>
+        <input type="password" id="exportPass" placeholder="Leave blank for no encryption" maxlength="64">
+        <div class="info-text">If no password is provided, the file will be exported unencrypted.</div>
         <div class="error" id="exportError"></div>
         <div class="modal-actions">
           <button class="cancel-btn" onclick="closeModal()">Cancel</button>
@@ -427,16 +427,11 @@
         </div>
       ` : `
         <h3>Import Tokens</h3>
-        <label for="importType">Import Source</label>
-        <select id="importType">
-          <option value="aegis">Aegis Authenticator</option>
-          <option value="authere">Authere JSON</option>
-        </select>
-        <label for="importFile">Backup File</label>
-        <input type="file" id="importFile" accept=".json">
-        <label for="importPass">Decryption Password</label>
-        <input type="password" id="importPass" placeholder="Enter the backup password" maxlength="64">
-        <div class="info-text">For Aegis backups, use the password set in Aegis. For Authere JSON, use the export password.</div>
+        <label for="importFile">Backup File (.txt or .json)</label>
+        <input type="file" id="importFile" accept=".txt,.json">
+        <label for="importPass">Decryption Password (if encrypted)</label>
+        <input type="password" id="importPass" placeholder="Leave blank for unencrypted files" maxlength="64">
+        <div class="info-text">Select a .txt file with format: Service: (account) secret, or an encrypted .json backup.</div>
         <div class="error" id="importError"></div>
         <div class="modal-actions">
           <button class="cancel-btn" onclick="closeModal()">Cancel</button>
@@ -444,7 +439,7 @@
         </div>
       `;
       modal.classList.add('show');
-      modal.querySelector('input, select').focus();
+      modal.querySelector('input').focus();
     }
 
     function closeModal() {
@@ -462,7 +457,6 @@
       modal.classList.add('show');
       document.getElementById('issuer').focus();
 
-      // Add Enter key support
       modal.querySelectorAll('input').forEach(input => {
         input.addEventListener('keypress', e => {
           if (e.key === 'Enter') saveToken();
@@ -484,11 +478,17 @@
 
     async function exportTokens() {
       const pass = sanitizeInput(document.getElementById('exportPass').value);
-      if (!pass) return showError('exportError', 'Enter a password');
       try {
         const data = JSON.stringify({ version: 1, tokens });
-        const encrypted = await encryptData(data, pass);
-        downloadFile('authere_export.json', encrypted);
+        let exportData, fileName;
+        if (pass) {
+          exportData = await encryptData(data, pass);
+          fileName = 'authere_export.json';
+        } else {
+          exportData = tokens.map(t => `${t.issuer}: (${t.account || ''})\n${t.secret}`).join('\n\n');
+          fileName = 'authere_export.txt';
+        }
+        downloadFile(fileName, exportData);
         closeModal();
       } catch {
         showError('exportError', 'Export failed');
@@ -496,35 +496,43 @@
     }
 
     async function importTokens() {
-      const type = document.getElementById('importType').value;
       const file = document.getElementById('importFile').files[0];
       const pass = sanitizeInput(document.getElementById('importPass').value);
-      if (!file || !pass) return showError('importError', 'Select a file and enter a password');
+      if (!file) return showError('importError', 'Select a file');
 
       const reader = new FileReader();
       reader.onload = async (e) => {
         try {
-          let data = e.target.result;
-          let imported;
-          if (type === 'aegis') {
+          const data = e.target.result;
+          let imported = [];
+
+          if (file.name.endsWith('.json')) {
+            if (!pass) return showError('importError', 'Password required for encrypted JSON');
             const decrypted = await decryptData(data, pass);
             const json = JSON.parse(decrypted);
-            if (!json.db || !Array.isArray(json.db.entries)) throw new Error('Invalid Aegis format');
-            imported = json.db.entries.map(entry => ({
-              issuer: sanitizeInput(entry.issuer || ''),
-              secret: normalizeSecret(entry.secret || ''),
-              account: sanitizeInput(entry.name || '')
-            }));
-          } else {
-            const decrypted = await decryptData(data, pass);
-            const json = JSON.parse(decrypted);
-            if (!Array.isArray(json.tokens)) throw new Error('Invalid Authere format');
+            if (!Array.isArray(json.tokens)) throw new Error('Invalid JSON format');
             imported = json.tokens.map(t => ({
               issuer: sanitizeInput(t.issuer || ''),
               secret: normalizeSecret(t.secret || ''),
               account: sanitizeInput(t.account || '')
             }));
+          } else if (file.name.endsWith('.txt')) {
+            const lines = data.split('\n').map(line => line.trim());
+            for (let i = 0; i < lines.length; i += 3) {
+              if (!lines[i]) continue;
+              const match = lines[i].match(/^(.+?):\s*\((.*?)\)$/);
+              if (!match) continue;
+              const issuer = sanitizeInput(match[1]);
+              const account = sanitizeInput(match[2]);
+              const secret = normalizeSecret(lines[i + 1] || '');
+              if (issuer && secret && validateBase32(secret)) {
+                imported.push({ issuer, secret, account: account || undefined });
+              }
+            }
+          } else {
+            throw new Error('Unsupported file type');
           }
+
           tokens = imported.filter(t => t.issuer && t.secret && validateBase32(t.secret));
           if (!tokens.length) throw new Error('No valid tokens found');
           saveTokens();
@@ -587,7 +595,7 @@
     }
 
     function downloadFile(name, data) {
-      const blob = new Blob([data], { type: 'application/json' });
+      const blob = new Blob([data], { type: name.endsWith('.json') ? 'application/json' : 'text/plain' });
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
@@ -602,7 +610,6 @@
     }
 
     function clearData() {
-      // Simulate CSRF check (client-side placeholder)
       if (!csrfToken) return;
       try {
         localStorage.removeItem('tokens');
@@ -764,7 +771,6 @@
     }
 
     function deleteToken(index) {
-      // Simulate CSRF check
       if (!csrfToken) return;
       try {
         tokens.splice(index, 1);

@@ -21,7 +21,7 @@ Welcome to **Authere**, a lean, mean, TOTP-generating machine that lives in your
 
 ## Getting Started
 
-1. **Visit the App**: Head to [autherest.github.io](https://autherest.github.io) (or wherever you’ve deployed this bad boy).
+1. **Visit the App**: Head to [authere](https://authere.github.io)
 2. **Add a Token**: Click "Add Token," enter your issuer (e.g., "Google"), secret (Base32, like `JBSWY3DPEHPK3PXP`), and optional account name. Hit save.
 3. **Copy & Go**: Click the 6-digit code to copy it and paste it into your login. Feel like a hacker, but the legal kind.
 4. **Import Tokens**: Got a backup from Aegis or a text file? Use the "Import" option in the settings menu (cog icon, top-right).
@@ -38,24 +38,11 @@ Welcome to **Authere**, a lean, mean, TOTP-generating machine that lives in your
 
 - **Local Storage**: Tokens live in your browser’s `localStorage`. It’s convenient but not Fort Knox. Don’t store your life’s secrets here without a backup.
 - **No Encryption (Yet)**: Exported JSON files are unencrypted, so keep them safe. We might add password protection if you beg nicely.
-- **Sanitized Inputs**: We scrub all inputs to prevent XSS attacks, so hackers can’t sneak in naughty scripts.
-- **CDN Dependencies**: We use `jsSHA` for TOTP math and Font Awesome for icons, pulled from Cloudflare’s CDN. They’re legit, but we’re considering SRI hashes for extra paranoia.
-
-## Contributing
-
-Love Authere? Hate it? Want to make it better? Fork the repo, tinker, and send a pull request. Ideas we’d love:
-- QR code scanning for lazy token imports.
-- Optional encryption for `localStorage` or exports.
-- Support for 8-digit codes or funky TOTP algorithms (SHA-256, anyone?).
-- Smoother animations using `requestAnimationFrame`.
-
-Check the [issues](https://github.com/Autherest/autherest.github.io/issues) for what’s cooking or to report bugs. Be nice—we’re all just trying to make 2FA less painful.
 
 ## Privacy & Open Source
 
-- **Privacy Policy**: We don’t collect data because there’s no server. Your tokens stay in your browser. [Read more](/privacy-policy).
-- **Open Source**: Dive into the code at [github.com/Autherest/autherest.github.io](https://github.com/Autherest/autherest.github.io). It’s MIT-licensed, so go wild.
-- **Contact**: Got questions or want to roast our UI? Hit us up at [/contact](/contact).
+- **Privacy Policy**: We don’t collect data because there’s no server. Your tokens stay in your browser.
+- **Open Source**: Dive into the code at [authere.github.io](https://authere.github.io).
 
 ## Known Quirks
 
@@ -63,10 +50,6 @@ Check the [issues](https://github.com/Autherest/autherest.github.io/issues) for 
 - Time sync relies on `worldtimeapi.org`. If it’s down, codes might be off. We’re working on fallbacks.
 - No token grouping or favorites yet. If you’ve got 50 tokens, good luck scrolling.
 
-## Why “Authere”?
-
-Because “Authenticator” was too long, and we thought it sounded cool. Also, it’s “there” for your authentication needs. Get it? *Wink.*
-
 ---
 
-Built with ☕ and 🤓 by [Your Name or Handle]. Licensed under MIT. Now go secure your accounts like a pro.
+Built with ☕ and 🤓 by [0x0ut0].

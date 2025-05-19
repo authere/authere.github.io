@@ -1,5 +1,7 @@
 # Authere: Browser-Based TOTP Authenticator
 
+**Visit the App**: Head to [authere](https://authere.github.io)
+
 - **No Server, No Problem**: Everything happens in your browser. No cloud, no backend, no "we've been hacked" emails.
 - **Aegis-Compatible**: Import and export tokens in Aegis JSON format, so you can switch without losing your mind.
 - **Lightweight & Open-Source**: Hosted on GitHub Pages, Authere is free, transparent, and ready for you to poke around in the code.

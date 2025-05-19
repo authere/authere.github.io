@@ -42,13 +42,11 @@ Welcome to **Authere**, a lean, mean, TOTP-generating machine that lives in your
 ## Privacy & Open Source
 
 - **Privacy Policy**: We don’t collect data because there’s no server. Your tokens stay in your browser.
-- **Open Source**: Dive into the code at [authere.github.io](https://authere.github.io).
+- **Open Source**: Dive into the code at [authere](https://github.com/authere/authere.github.io).
 
 ## Known Quirks
 
 - If `localStorage` is disabled (e.g., incognito mode), you’ll get an alert. Enable it or export your tokens elsewhere.
-- Time sync relies on `worldtimeapi.org`. If it’s down, codes might be off. We’re working on fallbacks.
-- No token grouping or favorites yet. If you’ve got 50 tokens, good luck scrolling.
 
 ---
 

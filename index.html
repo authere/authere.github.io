@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>Authere</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/3.2.0/sha.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jsSHA/3.2.0/sha.min.js"></script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <style>
     :root {
@@ -18,6 +18,7 @@
       --border: #333333;
       --radius: 8px;
       --shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+      --transition: all 0.2s ease;
     }
 
     * {
@@ -27,7 +28,7 @@
     }
 
     body {
-      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
       background: var(--background);
       color: var(--text);
       min-height: 100vh;
@@ -75,6 +76,7 @@
       align-items: center;
       gap: 6px;
       box-shadow: var(--shadow);
+      transition: var(--transition);
     }
 
     .btn.secondary {
@@ -84,6 +86,11 @@
 
     .btn:hover {
       filter: brightness(1.1);
+    }
+
+    .btn:focus {
+      outline: 2px solid var(--primary);
+      outline-offset: 2px;
     }
 
     .token-list {
@@ -125,6 +132,7 @@
       cursor: pointer;
       position: relative;
       user-select: none;
+      transition: var(--transition);
     }
 
     .tooltip {
@@ -137,6 +145,7 @@
       border-radius: 4px;
       font-size: 0.75rem;
       display: none;
+      z-index: 10;
     }
 
     .token-code.copied .tooltip {
@@ -153,6 +162,7 @@
     .progress-bar {
       height: 100%;
       background: var(--accent);
+      transition: width 0.1s linear;
     }
 
     .countdown {
@@ -211,9 +221,11 @@
       border-radius: var(--radius);
       cursor: pointer;
       font-size: 0.85rem;
+      transition: var(--transition);
     }
 
-    .cancel-btn:hover {
+    .cancel-btn:hover,
+    .cancel-btn:focus {
       filter: brightness(1.1);
     }
 
@@ -226,6 +238,7 @@
       color: var(--text);
       font-size: 0.85rem;
       margin-bottom: 8px;
+      touch-action: manipulation;
     }
 
     input:focus, select:focus {
@@ -274,7 +287,8 @@
       min-width: 140px;
     }
 
-    .dropdown:hover .dropdown-content {
+    .dropdown:hover .dropdown-content,
+    .dropdown:focus-within .dropdown-content {
       display: block;
     }
 
@@ -290,9 +304,11 @@
       align-items: center;
       gap: 6px;
       font-size: 0.85rem;
+      transition: var(--transition);
     }
 
-    .dropdown-content button:hover {
+    .dropdown-content button:hover,
+    .dropdown-content button:focus {
       background: var(--background);
     }
 
@@ -308,9 +324,11 @@
       color: var(--text-muted);
       text-decoration: none;
       margin: 0 6px;
+      transition: var(--transition);
     }
 
-    .footer a:hover {
+    .footer a:hover,
+    .footer a:focus {
       color: var(--primary);
     }
 
@@ -318,6 +336,14 @@
       font-size: 0.75rem;
       color: var(--text-muted);
       margin-bottom: 8px;
+    }
+
+    .info-text code {
+      display: block;
+      background: var(--background);
+      padding: 8px;
+      border-radius: 4px;
+      white-space: pre-wrap;
     }
 
     @media (max-width: 400px) {
@@ -339,458 +365,544 @@
   <div class="container">
     <div class="header">
       <h1>Authere</h1>
-      <div class="dropdown">
-        <button class="btn secondary"><i class="fas fa-cog"></i></button>
+      <div class="dropdown" tabindex="0">
+        <button class="btn secondary" aria-label="Settings"><i class="fas fa-cog"></i></button>
         <div class="dropdown-content">
-          <button onclick="openModal('import')"><i class="fas fa-file-import"></i> Import</button>
-          <button onclick="openModal('export')"><i class="fas fa-file-export"></i> Export</button>
-          <button onclick="openClearModal()"><i class="fas fa-trash"></i> Clear Data</button>
+          <button onclick="app.openModal('import')"><i class="fas fa-file-import"></i> Import</button>
+          <button onclick="app.openModal('export')"><i class="fas fa-file-export"></i> Export</button>
+          <button onclick="app.openClearModal()"><i class="fas fa-trash"></i> Clear Data</button>
         </div>
       </div>
     </div>
-    <button class="btn" onclick="openAddModal()"><i class="fas fa-plus"></i> Add Token</button>
+    <button class="btn" onclick="app.openAddModal()"><i class="fas fa-plus"></i> Add Token</button>
     <div class="time-warning" id="timeWarning" style="display: none;"></div>
     <div class="token-list" id="tokenList"></div>
   </div>
 
   <div class="footer">
-    <a href="https://github.com/Autherest/autherest.github.io" target="_blank">Open Source</a>
+    <a href="https://github.com/Autherest/autherest.github.io" target="_blank" rel="noopener">Open Source</a>
     <a href="/privacy-policy">Privacy Policy</a>
     <a href="/contact">Contact</a>
   </div>
 
-  <div id="modal" class="modal">
-    <div class="modal-content">
+  <div id="modal" class="modal" role="dialog" aria-modal="true">
+    <div class="modal-content" role="document">
       <div id="modalContent"></div>
     </div>
   </div>
 
-  <div id="addModal" class="modal">
-    <div class="modal-content">
-      <h3 id="addModalTitle">Add Token</h></h3>
-      <label for="issuer">Issuer</label>
-      <input type="text" id="issuer" placeholder="e.g., Google" maxlength="64" autofocus>
-      <label for="secret">Secret (Base32)</label>
-      <input type="text" id="secret" placeholder="e.g., JBSWY3DPEHPK3PXP" maxlength="128">
-      <label for="account">Account (optional)</label>
-      <input type="text" id="account" placeholder="e.g., user@example.com" maxlength="64">
-      <div class="error" id="addError"></div>
-      <div class="modal-actions">
-        <button class="cancel-btn" onclick="closeAddModal()">Cancel</button>
-        <button class="btn" onclick="saveToken()">Save</button>
-      </div>
-    </div>
-  </div>
-
-  <div id="clearModal" class="modal">
-    <div class="modal-content">
-      <h3>Clear All Data</h3>
-      <p class="info-text">This will permanently delete all tokens. This action cannot be undone.</p>
-      <div class="modal-actions">
-        <button class="cancel-btn" onclick="closeClearModal()">Cancel</button>
-        <button class="btn" onclick="clearData()">Confirm</button>
-      </div>
-    </div>
-  </div>
-
   <script>
-    const TIME_STEP = 30;
-    let tokens = [];
-    let timeDiff = 0;
-    let editingIndex = null;
-    const csrfToken = crypto.getRandomValues(new Uint8Array(16)).join('');
+    // Main application state and methods
+    const app = {
+      TIME_STEP: 30,
+      state: {
+        tokens: [],
+        timeDiff: 0,
+        editingIndex: null,
+        tokenToSave: null,
+        tokenToDeleteIndex: null,
+        csrfToken: '',
+        lastCodes: new Map(),
+        renderInterval: null,
+      },
 
-    if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
-      alert('HTTPS required for security.');
-    }
-
-    function sanitizeInput(input) {
-      return (input || '').replace(/[<>"';&]/g, '').trim();
-    }
-
-    function validateBase32(secret) {
-      return /^[A-Z2-7=]+$/.test(secret.toUpperCase());
-    }
-
-    function openModal(type) {
-      const modal = document.getElementById('modal');
-      const content = document.getElementById('modalContent');
-      content.innerHTML = type === 'export' ? `
-        <h3>Export Tokens</h3>
-        <label for="exportPass">Encryption Password (optional)</label>
-        <input type="password" id="exportPass" placeholder="Leave blank for no encryption" maxlength="64">
-        <div class="info-text">If no password is provided, the file will be exported unencrypted.</div>
-        <div class="error" id="exportError"></div>
-        <div class="modal-actions">
-          <button class="cancel-btn" onclick="closeModal()">Cancel</button>
-          <button class="btn" onclick="exportTokens()"><i class="fas fa-file-export"></i> Export</button>
-        </div>
-      ` : `
-        <h3>Import Tokens</h3>
-        <label for="importFile">Backup File (.txt or .json)</label>
-        <input type="file" id="importFile" accept=".txt,.json">
-        <label for="importPass">Decryption Password (if encrypted)</label>
-        <input type="password" id="importPass" placeholder="Leave blank for unencrypted files" maxlength="64">
-        <div class="info-text">Select a .txt file with format: Service: (account) secret, or an encrypted .json backup.</div>
-        <div class="error" id="importError"></div>
-        <div class="modal-actions">
-          <button class="cancel-btn" onclick="closeModal()">Cancel</button>
-          <button class="btn" onclick="importTokens()"><i class="fas fa-file-import"></i> Import</button>
-        </div>
-      `;
-      modal.classList.add('show');
-      modal.querySelector('input').focus();
-    }
-
-    function closeModal() {
-      document.getElementById('modal').classList.remove('show');
-    }
-
-    function openAddModal(index = null) {
-      editingIndex = index;
-      const modal = document.getElementById('addModal');
-      document.getElementById('addModalTitle').textContent = index !== null ? 'Edit Token' : 'Add Token';
-      document.getElementById('issuer').value = index !== null ? tokens[index].issuer : '';
-      document.getElementById('secret').value = index !== null ? tokens[index].secret : '';
-      document.getElementById('account').value = index !== null ? tokens[index].account || '' : '';
-      document.getElementById('addError').textContent = '';
-      modal.classList.add('show');
-      document.getElementById('issuer').focus();
-
-      modal.querySelectorAll('input').forEach(input => {
-        input.addEventListener('keypress', e => {
-          if (e.key === 'Enter') saveToken();
-        });
-      });
-    }
-
-    function closeAddModal() {
-      document.getElementById('addModal').classList.remove('show');
-    }
-
-    function openClearModal() {
-      document.getElementById('clearModal').classList.add('show');
-    }
-
-    function closeClearModal() {
-      document.getElementById('clearModal').classList.remove('show');
-    }
-
-    async function exportTokens() {
-      const pass = sanitizeInput(document.getElementById('exportPass').value);
-      try {
-        const data = JSON.stringify({ version: 1, tokens });
-        let exportData, fileName;
-        if (pass) {
-          exportData = await encryptData(data, pass);
-          fileName = 'authere_export.json';
-        } else {
-          exportData = tokens.map(t => `${t.issuer}: (${t.account || ''})\n${t.secret}`).join('\n\n');
-          fileName = 'authere_export.txt';
+      // Initialize the app
+      init() {
+        this.state.csrfToken = this.generateCSRFToken();
+        if (location.protocol !== 'https:' && location.hostname !== 'localhost') {
+          alert('HTTPS required for security.');
+          return;
         }
-        downloadFile(fileName, exportData);
-        closeModal();
-      } catch {
-        showError('exportError', 'Export failed');
-      }
-    }
+        this.loadTokens();
+        this.checkTimeSync();
+        this.state.renderInterval = setInterval(() => this.renderTokens(), 1000);
+        window.addEventListener('unload', () => clearInterval(this.state.renderInterval));
+      },
 
-    async function importTokens() {
-      const file = document.getElementById('importFile').files[0];
-      const pass = sanitizeInput(document.getElementById('importPass').value);
-      if (!file) return showError('importError', 'Select a file');
+      // Generate CSRF token
+      generateCSRFToken() {
+        return Array.from(crypto.getRandomValues(new Uint8Array(16)))
+          .map(b => b.toString(16).padStart(2, '0'))
+          .join('');
+      },
 
-      const reader = new FileReader();
-      reader.onload = async (e) => {
+      // Sanitize input to prevent XSS
+      sanitizeInput(input) {
+        if (typeof input !== 'string') return '';
+        const div = document.createElement('div');
+        div.textContent = input.trim().slice(0, 128);
+        return div.innerHTML;
+      },
+
+      // Validate Base32 secret
+      validateBase32(secret) {
+        return /^[A-Z2-7=]{8,}$/.test(secret.toUpperCase());
+      },
+
+      // Generate UUID
+      generateUUID() {
+        return ([1e7] + -1e3 + -4e3 + -8e3 + -1e11).replace(/[018]/g, c =>
+          (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & 15) >> (c / 4)).toString(16)
+        );
+      },
+
+      // Modal management
+      openModal(type) {
+        const modal = document.getElementById('modal');
+        const content = document.getElementById('modalContent');
+        content.innerHTML = type === 'export' ? `
+          <h3>Export Tokens</h3>
+          <div class="info-text">Export tokens in Aegis JSON format (unencrypted).</div>
+          <div class="error" id="exportError"></div>
+          <div class="modal-actions">
+            <button class="cancel-btn" onclick="app.closeModal()">Cancel</button>
+            <button class="btn" onclick="app.exportTokens()"><i class="fas fa-file-export"></i> Export</button>
+          </div>
+        ` : `
+          <h3>Import Tokens</h3>
+          <label for="importFile">Backup File (.json or .txt)</label>
+          <input type="file" id="importFile" accept=".txt,.json">
+          <div class="info-text">
+            For .txt: One token per block, separated by blank lines:<br>
+            <code>Issuer: (account)<br>SECRET<br><br>
+Issuer2: (account2)<br>SECRET2</code>
+            For .json: Use Aegis JSON format.
+          </div>
+          <div class="error" id="importError"></div>
+          <div class="modal-actions">
+            <button class="cancel-btn" onclick="app.closeModal()">Cancel</button>
+            <button class="btn" onclick="app.importTokens()"><i class="fas fa-file-import"></i> Import</button>
+          </div>
+        `;
+        modal.classList.add('show');
+        modal.querySelector('input')?.focus();
+        modal.addEventListener('keydown', this.handleModalKeydown);
+      },
+
+      closeModal() {
+        const modal = document.getElementById('modal');
+        modal.classList.remove('show');
+        modal.removeEventListener('keydown', this.handleModalKeydown);
+      },
+
+      handleModalKeydown(e) {
+        if (e.key === 'Escape') app.closeModal();
+      },
+
+      openAddModal(index = null) {
+        this.state.editingIndex = index;
+        const modal = document.getElementById('modal');
+        const content = document.getElementById('modalContent');
+        const token = index !== null ? this.state.tokens[index] : {};
+        content.innerHTML = `
+          <h3>${index !== null ? 'Edit Token' : 'Add Token'}</h3>
+          <label for="issuer">Issuer</label>
+          <input type="text" id="issuer" placeholder="e.g., Google" maxlength="64" value="${token.issuer || ''}" autofocus>
+          <label for="secret">Secret (Base32)</label>
+          <input type="text" id="secret" placeholder="e.g., JBSWY3DPEHPK3PXP" maxlength="128" value="${token.secret || ''}">
+          <label for="account">Account (optional)</label>
+          <input type="text" id="account" placeholder="e.g., user@example.com" maxlength="64" value="${token.account || ''}">
+          <div class="error" id="addError"></div>
+          <div class="modal-actions">
+            <button class="cancel-btn" onclick="app.closeModal()">Cancel</button>
+            <button class="btn" onclick="app.confirmSaveToken()">Save</button>
+          </div>
+        `;
+        modal.classList.add('show');
+        document.getElementById('issuer').focus();
+        modal.querySelectorAll('input').forEach(input => {
+          input.addEventListener('input', this.debounce(this.validateInput, 300));
+          input.addEventListener('keypress', e => e.key === 'Enter' && this.confirmSaveToken());
+        });
+      },
+
+      openClearModal() {
+        const modal = document.getElementById('modal');
+        const content = document.getElementById('modalContent');
+        content.innerHTML = `
+          <h3>Clear All Data</h3>
+          <p class="info-text">This will permanently delete all tokens. This action cannot be undone.</p>
+          <div class="modal-actions">
+            <button class="cancel-btn" onclick="app.closeModal()">Cancel</button>
+            <button class="btn" onclick="app.clearData()">Confirm</button>
+          </div>
+        `;
+        modal.classList.add('show');
+      },
+
+      openConfirmModal() {
+        const modal = document.getElementById('modal');
+        const content = document.getElementById('modalContent');
+        content.innerHTML = `
+          <h3>Confirm Save</h3>
+          <p class="info-text">Are you sure you want to save this token?</p>
+          <div class="modal-actions">
+            <button class="cancel-btn" onclick="app.closeModal()">Cancel</button>
+            <button class="btn" onclick="app.saveToken()">Confirm</button>
+          </div>
+        `;
+        modal.classList.add('show');
+      },
+
+      openDeleteModal(index) {
+        this.state.tokenToDeleteIndex = index;
+        const modal = document.getElementById('modal');
+        const content = document.getElementById('modalContent');
+        content.innerHTML = `
+          <h3>Confirm Delete</h3>
+          <p class="info-text">Are you sure you want to delete this token? This action cannot be undone.</p>
+          <div class="modal-actions">
+            <button class="cancel-btn" onclick="app.closeModal()">Cancel</button>
+            <button class="btn" onclick="app.confirmDeleteToken()">Confirm</button>
+          </div>
+        `;
+        modal.classList.add('show');
+      },
+
+      // Input validation with debouncing
+      validateInput() {
+        const issuer = document.getElementById('issuer')?.value;
+        const secret = document.getElementById('secret')?.value;
+        const error = document.getElementById('addError');
+        if (!error) return;
+        if (!issuer || !secret) {
+          error.textContent = 'Issuer and secret required';
+        } else if (!this.validateBase32(this.normalizeSecret(secret))) {
+          error.textContent = 'Invalid Base32 secret';
+        } else {
+          error.textContent = '';
+        }
+      },
+
+      debounce(fn, ms) {
+        let timeout;
+        return (...args) => {
+          clearTimeout(timeout);
+          timeout = setTimeout(() => fn.apply(this, args), ms);
+        };
+      },
+
+      // Token management
+      async exportTokens() {
         try {
-          const data = e.target.result;
-          let imported = [];
+          const exportData = {
+            version: 1,
+            header: { slots: null, params: null },
+            db: {
+              version: 3,
+              entries: this.state.tokens.map(token => ({
+                type: 'totp',
+                uuid: this.generateUUID(),
+                name: this.sanitizeInput(token.account || token.issuer),
+                issuer: this.sanitizeInput(token.issuer),
+                note: '',
+                favorite: false,
+                icon: null,
+                info: {
+                  secret: this.normalizeSecret(token.secret),
+                  algo: 'SHA1',
+                  digits: 6,
+                  period: 30,
+                },
+                groups: [],
+              })),
+              groups: [],
+              icons_optimized: true,
+            },
+          };
+          this.downloadFile('authere_export.json', JSON.stringify(exportData, null, 2));
+          this.closeModal();
+        } catch (e) {
+          this.showError('exportError', `Export failed: ${e.message}`);
+        }
+      },
 
-          if (file.name.endsWith('.json')) {
-            if (!pass) return showError('importError', 'Password required for encrypted JSON');
-            const decrypted = await decryptData(data, pass);
-            const json = JSON.parse(decrypted);
-            if (!Array.isArray(json.tokens)) throw new Error('Invalid JSON format');
-            imported = json.tokens.map(t => ({
-              issuer: sanitizeInput(t.issuer || ''),
-              secret: normalizeSecret(t.secret || ''),
-              account: sanitizeInput(t.account || '')
-            }));
-          } else if (file.name.endsWith('.txt')) {
-            const lines = data.split('\n').map(line => line.trim());
-            for (let i = 0; i < lines.length; i += 3) {
-              if (!lines[i]) continue;
-              const match = lines[i].match(/^(.+?):\s*\((.*?)\)$/);
-              if (!match) continue;
-              const issuer = sanitizeInput(match[1]);
-              const account = sanitizeInput(match[2]);
-              const secret = normalizeSecret(lines[i + 1] || '');
-              if (issuer && secret && validateBase32(secret)) {
-                imported.push({ issuer, secret, account: account || undefined });
+      async importTokens() {
+        const file = document.getElementById('importFile').files[0];
+        if (!file) return this.showError('importError', 'Select a file');
+
+        const reader = new FileReader();
+        reader.onload = async e => {
+          try {
+            const data = e.target.result;
+            let imported = [];
+
+            if (file.name.endsWith('.json')) {
+              const json = JSON.parse(data);
+              if (json.version !== 1 || !json.db || !Array.isArray(json.db.entries)) {
+                throw new Error('Invalid Aegis JSON format');
               }
+              imported = json.db.entries
+                .filter(entry => entry.type === 'totp' && entry.info?.secret && this.validateBase32(entry.info.secret))
+                .map(entry => ({
+                  issuer: this.sanitizeInput(entry.issuer || entry.name || 'Unknown'),
+                  secret: this.normalizeSecret(entry.info.secret),
+                  account: this.sanitizeInput(entry.name || ''),
+                }));
+            } else if (file.name.endsWith('.txt')) {
+              const lines = data.split(/\r?\n/).map(line => line.trim()).filter(line => line);
+              let i = 0;
+              while (i < lines.length) {
+                const match = lines[i].match(/^(.+?):\s*\((.*?)\)$/);
+                if (match && i + 1 < lines.length) {
+                  const issuer = this.sanitizeInput(match[1]);
+                  const account = this.sanitizeInput(match[2]);
+                  const secret = this.normalizeSecret(lines[i + 1] || '');
+                  if (issuer && secret && this.validateBase32(secret)) {
+                    imported.push({ issuer, secret, account: account || undefined });
+                  }
+                  i += 2;
+                } else {
+                  i++;
+                }
+              }
+            } else {
+              throw new Error('Unsupported file type');
             }
+
+            if (!imported.length) throw new Error('No valid tokens found');
+            this.state.tokens = imported;
+            this.saveTokens();
+            this.renderTokens();
+            this.closeModal();
+          } catch (e) {
+            this.showError('importError', `Import failed: ${e.message}`);
+          }
+        };
+        reader.readAsText(file);
+      },
+
+      downloadFile(name, data) {
+        const blob = new Blob([data], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = name;
+        a.click();
+        URL.revokeObjectURL(url);
+      },
+
+      showError(id, message) {
+        const error = document.getElementById(id);
+        if (error) error.textContent = message;
+        console.warn(`Error: ${message}`);
+      },
+
+      clearData() {
+        try {
+          localStorage.removeItem('tokens');
+          this.state.tokens = [];
+          this.renderTokens();
+          this.closeModal();
+        } catch {
+          alert('Failed to clear data');
+        }
+      },
+
+      async checkTimeSync(attempt = 1) {
+        try {
+          const res = await fetch('https://worldtimeapi.org/api/ip');
+          const { unixtime } = await res.json();
+          this.state.timeDiff = unixtime * 1000 - Date.now();
+          if (Math.abs(this.state.timeDiff) > 5000) {
+            const warning = document.getElementById('timeWarning');
+            warning.style.display = 'block';
+            warning.textContent = `Time sync error: Device time off by ~${Math.round(this.state.timeDiff / 1000)}s`;
+          }
+        } catch {
+          if (attempt < 3) {
+            setTimeout(() => this.checkTimeSync(attempt + 1), 1000 * attempt);
           } else {
-            throw new Error('Unsupported file type');
+            console.warn('Time sync failed, using local time');
+            this.state.timeDiff = 0;
+          }
+        }
+      },
+
+      normalizeSecret(secret) {
+        return this.sanitizeInput(secret).toUpperCase().replace(/[^A-Z2-7]/g, '');
+      },
+
+      base32ToBytes(base32) {
+        const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+        let bytes = [], buffer = 0, bits = 0;
+        for (let char of base32.replace(/=/g, '').toUpperCase()) {
+          const index = alphabet.indexOf(char);
+          if (index === -1) throw new Error('Invalid Base32');
+          buffer = (buffer << 5) | index;
+          bits += 5;
+          while (bits >= 8) {
+            bytes.push((buffer >>> (bits - 8)) & 0xFF);
+            bits -= 8;
+          }
+        }
+        return new Uint8Array(bytes);
+      },
+
+      generateTOTP(secret) {
+        try {
+          const currentTime = Math.floor((Date.now() + this.state.timeDiff) / 1000 / this.TIME_STEP);
+          const cacheKey = `${secret}:${currentTime}`;
+          if (this.state.lastCodes.has(cacheKey)) {
+            return this.state.lastCodes.get(cacheKey);
           }
 
-          tokens = imported.filter(t => t.issuer && t.secret && validateBase32(t.secret));
-          if (!tokens.length) throw new Error('No valid tokens found');
-          saveTokens();
-          renderTokens();
-          closeModal();
+          const key = this.base32ToBytes(secret);
+          const buffer = new ArrayBuffer(8);
+          new DataView(buffer).setBigUint64(0, BigInt(currentTime));
+          const sha = new jsSHA('SHA-1', 'ARRAYBUFFER');
+          sha.setHMACKey(key, 'ARRAYBUFFER');
+          sha.update(buffer);
+          const hmac = new Uint8Array(sha.getHMAC('ARRAYBUFFER'));
+          const offset = hmac[hmac.length - 1] & 0x0F;
+          const code = (((
+            ((hmac[offset] & 0x7F) << 24) |
+            ((hmac[offset + 1] & 0xFF) << 16) |
+            ((hmac[offset + 2] & 0xFF) << 8) |
+            (hmac[offset + 3] & 0xFF)
+          ) % 1000000).toString().padStart(6, '0'));
+
+          this.state.lastCodes.set(cacheKey, code);
+          setTimeout(() => this.state.lastCodes.delete(cacheKey), this.TIME_STEP * 1000);
+          return code;
         } catch {
-          showError('importError', 'Import failed: Invalid file or password');
+          return 'ERROR';
         }
-      };
-      reader.readAsText(file);
-    }
+      },
 
-    async function encryptData(data, pass) {
-      const encoder = new TextEncoder();
-      const salt = crypto.getRandomValues(new Uint8Array(16));
-      const key = await deriveKey(pass, salt);
-      const iv = crypto.getRandomValues(new Uint8Array(12));
-      const encrypted = await crypto.subtle.encrypt(
-        { name: 'AES-GCM', iv },
-        key,
-        encoder.encode(data)
-      );
-      return JSON.stringify({
-        salt: Array.from(salt),
-        iv: Array.from(iv),
-        data: Array.from(new Uint8Array(encrypted))
-      });
-    }
-
-    async function decryptData(data, pass) {
-      try {
-        const { salt, iv, data: encData } = JSON.parse(data);
-        const key = await deriveKey(pass, new Uint8Array(salt));
-        const decrypted = await crypto.subtle.decrypt(
-          { name: 'AES-GCM', iv: new Uint8Array(iv) },
-          key,
-          new Uint8Array(encData)
-        );
-        return new TextDecoder().decode(decrypted);
-      } catch {
-        throw new Error('Decryption failed');
-      }
-    }
-
-    async function deriveKey(pass, salt) {
-      const keyMaterial = await crypto.subtle.importKey(
-        'raw',
-        new TextEncoder().encode(pass),
-        'PBKDF2',
-        false,
-        ['deriveKey']
-      );
-      return crypto.subtle.deriveKey(
-        { name: 'PBKDF2', salt, iterations: 1000000, hash: 'SHA-256' },
-        keyMaterial,
-        { name: 'AES-GCM', length: 256 },
-        false,
-        ['encrypt', 'decrypt']
-      );
-    }
-
-    function downloadFile(name, data) {
-      const blob = new Blob([data], { type: name.endsWith('.json') ? 'application/json' : 'text/plain' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = name;
-      a.click();
-      URL.revokeObjectURL(url);
-    }
-
-    function showError(id, message) {
-      const error = document.getElementById(id);
-      error.textContent = message;
-    }
-
-    function clearData() {
-      if (!csrfToken) return;
-      try {
-        localStorage.removeItem('tokens');
-        tokens = [];
-        renderTokens();
-        closeClearModal();
-      } catch {
-        alert('Failed to clear data');
-      }
-    }
-
-    async function checkTimeSync() {
-      try {
-        const res = await fetch('https://worldtimeapi.org/api/ip');
-        const { unixtime } = await res.json();
-        timeDiff = (unixtime * 1000) - Date.now();
-        if (Math.abs(timeDiff) > 5000) {
-          const warning = document.getElementById('timeWarning');
-          warning.style.display = 'block';
-          warning.textContent = `Time sync error: Device time off by ~${Math.round(timeDiff / 1000)}s`;
+      loadTokens() {
+        try {
+          const saved = localStorage.getItem('tokens');
+          if (saved) {
+            const parsed = JSON.parse(saved);
+            this.state.tokens = Array.isArray(parsed)
+              ? parsed.filter(t => t.issuer && t.secret && this.validateBase32(t.secret))
+              : [];
+          }
+          this.renderTokens();
+        } catch {
+          this.state.tokens = [];
+          this.renderTokens();
         }
-      } catch {
-        console.warn('Time sync check failed');
-      }
-    }
+      },
 
-    function normalizeSecret(secret) {
-      secret = sanitizeInput(secret).toUpperCase().replace(/[^A-Z2-7]/g, '');
-      return validateBase32(secret) ? secret : '';
-    }
-
-    function base32ToBytes(base32) {
-      const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
-      let bytes = [], buffer = 0, bits = 0;
-      for (let char of base32.replace(/=/g, '').toUpperCase()) {
-        const index = alphabet.indexOf(char);
-        if (index === -1) throw new Error('Invalid Base32');
-        buffer = (buffer << 5) | index;
-        bits += 5;
-        while (bits >= 8) {
-          bytes.push((buffer >>> (bits - 8)) & 0xFF);
-          bits -= 8;
+      saveTokens() {
+        try {
+          localStorage.setItem('tokens', JSON.stringify(this.state.tokens));
+        } catch {
+          alert('Failed to save tokens');
         }
-      }
-      return new Uint8Array(bytes);
-    }
+      },
 
-    function generateTOTP(secret) {
-      try {
-        const key = base32ToBytes(secret);
-        const time = Math.floor((Date.now() + timeDiff) / 1000 / TIME_STEP);
-        const buffer = new ArrayBuffer(8);
-        new DataView(buffer).setBigUint64(0, BigInt(time));
-        const sha = new jsSHA('SHA-1', 'ARRAYBUFFER');
-        sha.setHMACKey(key, 'ARRAYBUFFER');
-        sha.update(buffer);
-        const hmac = new Uint8Array(sha.getHMAC('ARRAYBUFFER'));
-        const offset = hmac[hmac.length - 1] & 0x0F;
-        const code = ((
-          ((hmac[offset] & 0x7F) << 24) |
-          ((hmac[offset + 1] & 0xFF) << 16) |
-          ((hmac[offset + 2] & 0xFF) << 8) |
-          (hmac[offset + 3] & 0xFF)
-        ) % 1000000).toString().padStart(6, '0');
-        return code;
-      } catch {
-        return 'ERROR';
-      }
-    }
+      renderTokens() {
+        const list = document.getElementById('tokenList');
+        const secondsLeft = this.TIME_STEP - Math.floor((Date.now() + this.state.timeDiff) / 1000 % this.TIME_STEP);
+        const progress = (secondsLeft / this.TIME_STEP) * 100;
+        const fragment = document.createDocumentFragment();
 
-    function loadTokens() {
-      try {
-        const saved = localStorage.getItem('tokens');
-        if (saved) {
-          const parsed = JSON.parse(saved);
-          tokens = Array.isArray(parsed) ? parsed.filter(t => t.issuer && t.secret && validateBase32(t.secret)) : [];
+        if (!this.state.tokens.length) {
+          const empty = document.createElement('div');
+          empty.className = 'token';
+          empty.textContent = 'No tokens. Add one to start.';
+          fragment.appendChild(empty);
+        } else {
+          this.state.tokens.forEach((token, i) => {
+            const code = this.generateTOTP(token.secret);
+            const card = document.createElement('div');
+            card.className = 'token';
+            card.setAttribute('aria-label', `Token for ${token.issuer}`);
+            card.innerHTML = `
+              <div class="token-header">
+                <div class="token-info">
+                  <h3>${this.sanitizeInput(token.issuer || `Token ${i + 1}`)}</h3>
+                  ${token.account ? `<p>${this.sanitizeInput(token.account)}</p>` : ''}
+                </div>
+                <div class="token-actions">
+                  <button class="btn secondary" onclick="app.openAddModal(${i})" title="Edit" aria-label="Edit token">
+                    <i class="fas fa-edit"></i>
+                  </button>
+                  <button class="btn secondary" onclick="app.openDeleteModal(${i})" title="Delete" aria-label="Delete token">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+              <div class="token-code" tabindex="0" role="button" aria-label="Copy code ${code}">${code}<span class="tooltip">Copied!</span></div>
+              <div class="progress"><div class="progress-bar" style="width: ${progress}%"></div></div>
+              <div class="countdown">${secondsLeft}s</div>
+            `;
+            card.querySelector('.token-code').addEventListener('click', () => this.copyToClipboard(code, card.querySelector('.token-code')));
+            card.querySelector('.token-code').addEventListener('keypress', e => e.key === 'Enter' && this.copyToClipboard(code, card.querySelector('.token-code')));
+            fragment.appendChild(card);
+          });
         }
-        renderTokens();
-      } catch {
-        tokens = [];
-        renderTokens();
-      }
-    }
 
-    function saveTokens() {
-      try {
-        localStorage.setItem('tokens', JSON.stringify(tokens));
-      } catch {
-        alert('Failed to save tokens');
-      }
-    }
+        list.innerHTML = '';
+        list.appendChild(fragment);
+      },
 
-    function renderTokens() {
-      const list = document.getElementById('tokenList');
-      const secondsLeft = TIME_STEP - Math.floor((Date.now() + timeDiff) / 1000 % TIME_STEP);
-      const progress = (secondsLeft / TIME_STEP) * 100;
-      list.innerHTML = tokens.length ? '' : '<div class="token">No tokens. Add one to start.</div>';
+      confirmSaveToken() {
+        const issuer = this.sanitizeInput(document.getElementById('issuer')?.value);
+        const secret = document.getElementById('secret')?.value.trim();
+        const account = this.sanitizeInput(document.getElementById('account')?.value);
+        const error = document.getElementById('addError');
 
-      tokens.forEach((token, i) => {
-        const code = generateTOTP(token.secret);
-        const card = document.createElement('div');
-        card.className = 'token';
-        card.innerHTML = `
-          <div class="token-header">
-            <div class="token-info">
-              <h3>${sanitizeInput(token.issuer || `Token ${i + 1}`)}</h3>
-              ${token.account ? `<p>${sanitizeInput(token.account)}</p>` : ''}
-            </div>
-            <div class="token-actions">
-              <button class="btn secondary" onclick="openAddModal(${i})" title="Edit">
-                <i class="fas fa-edit"></i>
-              </button>
-              <button class="btn secondary" onclick="deleteToken(${i})" title="Delete">
-                <i class="fas fa-trash"></i>
-              </button>
-            </div>
-          </div>
-          <div class="token-code">${code}<span class="tooltip">Copied!</span></div>
-          <div class="progress"><div class="progress-bar" style="width: ${progress}%"></div></div>
-          <div class="countdown">${secondsLeft}s</div>
-        `;
-        card.querySelector('.token-code').onclick = () => copyToClipboard(code, card.querySelector('.token-code'));
-        list.appendChild(card);
-      });
-    }
+        if (!issuer || !secret) {
+          error.textContent = 'Issuer and secret required';
+          return;
+        }
 
-    function saveToken() {
-      const issuer = sanitizeInput(document.getElementById('issuer').value);
-      const secret = document.getElementById('secret').value.trim();
-      const account = sanitizeInput(document.getElementById('account').value);
-      const error = document.getElementById('addError');
+        const normalizedSecret = this.normalizeSecret(secret);
+        if (!this.validateBase32(normalizedSecret)) {
+          error.textContent = 'Invalid Base32 secret';
+          return;
+        }
 
-      if (!issuer || !secret) {
-        error.textContent = 'Issuer and secret required';
-        return;
-      }
+        if (this.state.editingIndex === null && this.state.tokens.some(t => t.secret === normalizedSecret)) {
+          error.textContent = 'Token already exists';
+          return;
+        }
 
-      const normalizedSecret = normalizeSecret(secret);
-      if (!normalizedSecret) {
-        error.textContent = 'Invalid Base32 secret';
-        return;
-      }
+        this.state.tokenToSave = { issuer, secret: normalizedSecret, account: account || undefined };
+        this.openConfirmModal();
+      },
 
-      if (editingIndex === null && tokens.some(t => t.secret === normalizedSecret)) {
-        error.textContent = 'Token already exists';
-        return;
-      }
+      saveToken() {
+        if (!this.state.tokenToSave) return;
+        if (this.state.editingIndex === null) {
+          this.state.tokens.push(this.state.tokenToSave);
+        } else {
+          this.state.tokens[this.state.editingIndex] = this.state.tokenToSave;
+        }
+        this.saveTokens();
+        this.renderTokens();
+        this.closeModal();
+        this.state.tokenToSave = null;
+        this.state.editingIndex = null;
+      },
 
-      const token = { issuer, secret: normalizedSecret, account: account || undefined };
-      if (editingIndex === null) {
-        tokens.push(token);
-      } else {
-        tokens[editingIndex] = token;
-      }
+      confirmDeleteToken() {
+        if (this.state.tokenToDeleteIndex === null) return;
+        try {
+          this.state.tokens.splice(this.state.tokenToDeleteIndex, 1);
+          this.saveTokens();
+          this.renderTokens();
+          this.closeModal();
+          this.state.tokenToDeleteIndex = null;
+        } catch {
+          alert('Failed to delete token');
+        }
+      },
 
-      saveTokens();
-      renderTokens();
-      closeAddModal();
-    }
+      copyToClipboard(text, element) {
+        navigator.clipboard.writeText(text).then(() => {
+          element.classList.add('copied');
+          setTimeout(() => element.classList.remove('copied'), 2000);
+        }).catch(() => alert('Failed to copy code'));
+      },
+    };
 
-    function deleteToken(index) {
-      if (!csrfToken) return;
-      try {
-        tokens.splice(index, 1);
-        saveTokens();
-        renderTokens();
-      } catch {
-        alert('Failed to delete token');
-      }
-    }
-
-    function copyToClipboard(text, element) {
-      navigator.clipboard.writeText(text).then(() => {
-        element.classList.add('copied');
-        setTimeout(() => element.classList.remove('copied'), 2000);
-      });
-    }
-
-    checkTimeSync();
-    setInterval(renderTokens, 1000);
-    loadTokens();
+    // Start the app
+    app.init();
   </script>
 </body>
 </html>

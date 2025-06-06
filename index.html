@@ -452,12 +452,7 @@
         const content = document.getElementById('modalContent');
         content.innerHTML = type === 'export' ? `
           <h3>Export Tokens</h3>
-          <div class="info-text">Export tokens in Aegis JSON or 2FAS format (unencrypted).</div>
-          <label for="exportFormat">Export Format</label>
-          <select id="exportFormat">
-            <option value="aegis">Aegis JSON</option>
-            <option value="2fas">2FAS</option>
-          </select>
+          <div class="info-text">Export tokens in Aegis JSON format (unencrypted).</div>
           <div class="error" id="exportError"></div>
           <div class="modal-actions">
             <button class="cancel-btn" onclick="app.closeModal()">Cancel</button>
@@ -480,7 +475,7 @@ Issuer2: (account2)<br>SECRET2</code>
           </div>
         `;
         modal.classList.add('show');
-        modal.querySelector('input, select')?.focus();
+        modal.querySelector('input')?.focus();
         modal.addEventListener('keydown', this.handleModalKeydown);
       },
 
@@ -590,74 +585,32 @@ Issuer2: (account2)<br>SECRET2</code>
       // Token management
       async exportTokens() {
         try {
-          const format = document.getElementById('exportFormat').value;
-          if (format === 'aegis') {
-            const exportData = {
-              version: 1,
-              header: { slots: null, params: null },
-              db: {
-                version: 3,
-                entries: this.state.tokens.map(token => ({
-                  type: 'totp',
-                  uuid: this.generateUUID(),
-                  name: this.sanitizeInput(token.account || token.issuer),
-                  issuer: this.sanitizeInput(token.issuer),
-                  note: '',
-                  favorite: false,
-                  icon: null,
-                  info: {
-                    secret: this.normalizeSecret(token.secret),
-                    algo: 'SHA1',
-                    digits: 6,
-                    period: 30,
-                  },
-                  groups: [],
-                })),
-                groups: [],
-                icons_optimized: true,
-              },
-            };
-            this.downloadFile('authere_export.json', JSON.stringify(exportData, null, 2));
-          } else if (format === '2fas') {
-            const exportData = {
-              services: this.state.tokens.map((token, index) => ({
-                icon: {
-                  selected: "IconCollection",
-                  label: {
-                    text: this.sanitizeInput(token.issuer).slice(0, 2).toUpperCase(),
-                    backgroundColor: "Green"
-                  },
-                  iconCollection: {
-                    id: this.generateUUID()
-                  }
-                },
-                badge: {
-                  color: "Default"
-                },
-                order: {
-                  position: index
-                },
-                name: this.sanitizeInput(token.issuer),
-                updatedAt: Date.now(),
-                secret: this.normalizeSecret(token.secret),
-                otp: {
-                  algorithm: "SHA1",
-                  account: this.sanitizeInput(token.account || token.issuer),
+          const exportData = {
+            version: 1,
+            header: { slots: null, params: null },
+            db: {
+              version: 3,
+              entries: this.state.tokens.map(token => ({
+                type: 'totp',
+                uuid: this.generateUUID(),
+                name: this.sanitizeInput(token.account || token.issuer),
+                issuer: this.sanitizeInput(token.issuer),
+                note: '',
+                favorite: false,
+                icon: null,
+                info: {
+                  secret: this.normalizeSecret(token.secret),
+                  algo: 'SHA1',
                   digits: 6,
-                  source: "manual",
-                  counter: 0,
                   period: 30,
-                  tokenType: "TOTP"
-                }
+                },
+                groups: [],
               })),
-              appVersionCode: 50313,
-              appVersionName: "5.3.13",
-              appOrigin: "ios",
               groups: [],
-              schemaVersion: 4
-            };
-            this.downloadFile('authere_export.2fas', JSON.stringify(exportData, null, 2));
-          }
+              icons_optimized: true,
+            },
+          };
+          this.downloadFile('authere_export.json', JSON.stringify(exportData, null, 2));
           this.closeModal();
         } catch (e) {
           this.showError('exportError', `Export failed: ${e.message}`);
